@@ -124,7 +124,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   if (name === "getTotalExpense") {
     const row = db.prepare("SELECT SUM(amount) AS total FROM expenses").get();
-
     return {
       content: [{ type: "text", text: `Total expense: ${row.total || 0}` }]
     };
@@ -177,6 +176,7 @@ app.get("/", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`MCP Server running on port ${PORT}`);
 });
