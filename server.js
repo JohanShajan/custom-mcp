@@ -1,5 +1,8 @@
 import express from "express";
 
+const app = express();
+app.use(express.json());
+
 let expenses = [];
 
 const tools = [
@@ -34,12 +37,25 @@ const tools = [
   }
 ];
 
-const app = express();
-app.use(express.json());
+
+// Root route (important for Railway health check)
+app.get("/", (req, res) => {
+  res.send("MCP Server Running");
+});
+
 
 app.post("/mcp", (req, res) => {
   try {
-    const { method, params, id } = req.body;
+    const body = req.body || {};
+    const { method, params, id } = body;
+
+    if (!method) {
+      return res.status(400).json({
+        jsonrpc: "2.0",
+        id: id || null,
+        error: { message: "Invalid request: method missing" }
+      });
+    }
 
     // tools/list
     if (method === "tools/list") {
@@ -55,7 +71,7 @@ app.post("/mcp", (req, res) => {
       const { name, arguments: args } = params || {};
 
       if (name === "addExpense") {
-        expenses.push(args);
+        expenses.push(args || {});
         return res.json({
           jsonrpc: "2.0",
           id,
@@ -77,17 +93,24 @@ app.post("/mcp", (req, res) => {
       }
 
       if (name === "add") {
+        const result = (args?.a || 0) + (args?.b || 0);
         return res.json({
           jsonrpc: "2.0",
           id,
           result: {
-            content: [{ type: "text", text: `${args.a + args.b}` }]
+            content: [{ type: "text", text: `${result}` }]
           }
         });
       }
+
+      return res.json({
+        jsonrpc: "2.0",
+        id,
+        error: { message: "Unknown tool" }
+      });
     }
 
-    res.status(400).json({
+    return res.status(400).json({
       jsonrpc: "2.0",
       id,
       error: { message: "Unknown method" }
@@ -98,6 +121,7 @@ app.post("/mcp", (req, res) => {
     res.status(500).send("Server error");
   }
 });
+
 
 const PORT = process.env.PORT || 3000;
 
