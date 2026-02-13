@@ -8,18 +8,10 @@ import {
 let expenses = [];
 
 const server = new Server(
-  {
-    name: "expense-server",
-    version: "1.0.0"
-  },
-  {
-    capabilities: {
-      tools: {}
-    }
-  }
+  { name: "expense-server", version: "1.0.0" },
+  { capabilities: { tools: {} } }
 );
 
-// Tool list
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -39,20 +31,29 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "getTotalExpense",
         description: "Get total expense",
         inputSchema: { type: "object", properties: {} }
+      },
+      {
+        name: "add",
+        description: "Add two numbers",
+        inputSchema: {
+          type: "object",
+          properties: {
+            a: { type: "number" },
+            b: { type: "number" }
+          },
+          required: ["a", "b"]
+        }
       }
     ]
   };
 });
 
-// Tool execution
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   if (name === "addExpense") {
     expenses.push(args);
-    return {
-      content: [{ type: "text", text: "Expense added" }]
-    };
+    return { content: [{ type: "text", text: "Expense added" }] };
   }
 
   if (name === "getTotalExpense") {
@@ -62,11 +63,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 
+  if (name === "add") {
+    return {
+      content: [{ type: "text", text: `${args.a + args.b}` }]
+    };
+  }
+
   return {
     content: [{ type: "text", text: "Unknown tool" }]
   };
 });
 
-// Start server (important)
 const transport = new StdioServerTransport();
 await server.connect(transport);
