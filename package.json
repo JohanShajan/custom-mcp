@@ -1,5 +1,5 @@
 {
-  "name": "custom-mcp",
+  "name": "expense-server",
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
@@ -7,8 +7,8 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "latest",
-    "better-sqlite3": "^12.6.2",
-    "express": "^5.2.1"
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "@libsql/client": "^0.14.0",
+    "express": "^4.18.2"
   }
 }
