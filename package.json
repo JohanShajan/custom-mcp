@@ -5,15 +5,13 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-  "start": "node server.js"
-},
-
+    "start": "node server.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "better-sqlite3": "^12.6.2",
     "express": "^5.2.1"
   }
 }

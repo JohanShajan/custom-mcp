@@ -1,8 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import express from "express";
-import Database from "better-sqlite3";
-import path from "path";
-import { fileURLToPath } from "url";
 
 import {
   ListToolsRequestSchema,
@@ -18,22 +15,8 @@ process.on("unhandledRejection", err => {
   console.error("Unhandled Rejection:", err);
 });
 
-// SQLite path fix
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, "expense.db");
-
-const db = new Database(dbPath);
-
-// Create table
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    amount REAL,
-    category TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )
-`).run();
+// In-memory storage (replaces SQLite)
+let expenses = [];
 
 // MCP server
 const server = new Server(
@@ -46,7 +29,7 @@ const server = new Server(
   }
 );
 
-// Tool definitions (unchanged)
+// Tool definitions
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -108,33 +91,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
-// Tool execution (unchanged)
+// Tool execution
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
+  // Add Expense
   if (name === "addExpense") {
-    db.prepare(
-      "INSERT INTO expenses (amount, category) VALUES (?, ?)"
-    ).run(args.amount, args.category);
+    expenses.push({
+      amount: args.amount,
+      category: args.category
+    });
 
-    return { content: [{ type: "text", text: "Expense added successfully" }] };
-  }
-
-  if (name === "getTotalExpense") {
-    const row = db.prepare("SELECT SUM(amount) AS total FROM expenses").get();
     return {
-      content: [{ type: "text", text: `Total expense: ${row.total || 0}` }]
+      content: [{ type: "text", text: "Expense added successfully" }]
     };
   }
 
+  // Get Total Expense
+  if (name === "getTotalExpense") {
+    const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+
+    return {
+      content: [
+        { type: "text", text: `Total expense: ${total}` }
+      ]
+    };
+  }
+
+  // Add numbers
   if (name === "add") {
-    return { content: [{ type: "text", text: `Result: ${args.a + args.b}` }] };
+    return {
+      content: [{ type: "text", text: `Result: ${args.a + args.b}` }]
+    };
   }
 
+  // Subtract numbers
   if (name === "subtract") {
-    return { content: [{ type: "text", text: `Result: ${args.a - args.b}` }] };
+    return {
+      content: [{ type: "text", text: `Result: ${args.a - args.b}` }]
+    };
   }
 
+  // EMI calculation
   if (name === "emi") {
     const r = args.rate / 12 / 100;
     const emi =
@@ -142,14 +140,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       (Math.pow(1 + r, args.months) - 1);
 
     return {
-      content: [{ type: "text", text: `Monthly EMI: ${emi.toFixed(2)}` }]
+      content: [
+        { type: "text", text: `Monthly EMI: ${emi.toFixed(2)}` }
+      ]
     };
   }
 
-  return { content: [{ type: "text", text: "Unknown tool" }] };
+  return {
+    content: [{ type: "text", text: "Unknown tool" }]
+  };
 });
 
-// EXPRESS SERVER (NEW PART)
+// EXPRESS SERVER
 const app = express();
 app.use(express.json());
 
@@ -163,7 +165,6 @@ app.post("/mcp", async (req, res) => {
   }
 });
 
-// Important for deployment
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
